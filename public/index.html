@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ Ultimate Anonymous Chat ✨</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: white;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            animation: fadeIn 1s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        #chatbox {
+            width: 100%;
+            max-width: 600px;
+            margin: auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            overflow-y: auto;
+            height: 400px;
+            backdrop-filter: blur(10px);
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-size: 1.1em;
+            transition: transform 0.3s;
+        }
+
+        .message:hover {
+            transform: scale(1.05);
+        }
+
+        .user {
+            background: #4caf50;
+            text-align: left;
+        }
+
+        .other {
+            background: #2196f3;
+            text-align: right;
+        }
+
+        #inputArea {
+            display: flex;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        #messageInput {
+            width: 70%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        button {
+            padding: 12px;
+            margin-left: 8px;
+            border: none;
+            background: linear-gradient(135deg, #ff9800, #ff5722);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background 0.3s, transform 0.2s;
+        }
+
+        button:hover {
+            background: linear-gradient(135deg, #e68900, #e64a19);
+            transform: scale(1.1);
+        }
+
+        .userList {
+            font-size: 1.2em;
+            margin-top: 15px;
+            color: #fff;
+        }
+
+        .selection-area {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .selection-area select {
+            padding: 10px;
+            font-size: 1em;
+            border-radius: 8px;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>✨ Ultimate Anonymous Chat ✨</h1>
+
+    <div class="selection-area">
+        <div>
+            <h3>Select Your Gender</h3>
+            <select id="genderSelect">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+            </select>
+        </div>
+        <div>
+            <h3>What are you looking for?</h3>
+            <select id="searchSelect">
+                <option value="chat">Chat</option>
+                <option value="friend">Friend</option>
+                <option value="partner">Partner</option>
+                <option value="nudes">Nudes</option>
+                <option value="all">All</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="chatbox"></div>
+
+    <div id="inputArea">
+        <input type="text" id="messageInput" placeholder="Type a message...">
+        <button onclick="sendMessage()">Send</button>
+        <button onclick="endChat()">End Chat</button>
+    </div>
+
+    <div class="userList" id="userCount">Searching for a stranger...</div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        let username = "User" + Math.floor(Math.random() * 1000);
+        let gender = document.getElementById("genderSelect").value;
+        let searchType = document.getElementById("searchSelect").value;
+
+        // Emit user details to the server when they select gender and search type
+        socket.emit('newUser', username, gender, searchType);
+
+        // Update user count
+        socket.on('userCount', (count) => {
+            document.getElementById("userCount").innerText = `${count} users online`;
+        });
+
+        // When matched with someone
+        socket.on('matchUser', (matchMessage) => {
+            document.getElementById("chatbox").innerHTML = matchMessage;
+        });
+
+        // Send a message to the other user
+        function sendMessage() {
+            let message = document.getElementById("messageInput").value.trim();
+            if (message !== "") {
+                let chatbox = document.getElementById("chatbox");
+                let msgDiv = document.createElement("div");
+                msgDiv.classList.add("message", "user");
+                msgDiv.innerText = username + ": " + message;
+                chatbox.appendChild(msgDiv);
+                socket.emit("sendMessage", message); // Send the message to server
+                chatbox.scrollTop = chatbox.scrollHeight;
+                document.getElementById("messageInput").value = "";
+            }
+        }
+
+        // Receive a message from the matched user
+        socket.on("receiveMessage", (msg) => {
+            let chatbox = document.getElementById("chatbox");
+            let msgDiv = document.createElement("div");
+            msgDiv.classList.add("message", "other");
+            msgDiv.innerText = "Stranger: " + msg;
+            chatbox.appendChild(msgDiv);
+            chatbox.scrollTop = chatbox.scrollHeight;
+        });
+
+        // End chat and search for a new match
+        function endChat() {
+            socket.emit("endChat");
+        }
+    </script>
+</body>
+</html>
